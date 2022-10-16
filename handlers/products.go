@@ -61,13 +61,14 @@ type KeyProduct struct{}
 func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		prod := data.Product{}
+
 		err := prod.FromJSON(r.Body)
 		if err != nil {
 			http.Error(rw, "Unable to unmarshall json", http.StatusInternalServerError)
 		}
 		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
 		r = r.WithContext(ctx)
-		fmt.Println(r)
+
 		next.ServeHTTP(rw, r)
 	})
 }
