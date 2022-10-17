@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"time"
-
+	"github.com/go-openapi/runtime/middleware"
 	"golang.org/x/net/context"
 )
 
@@ -17,13 +17,17 @@ func main() {
 	ph := handlers.NewProducts(l)
 	sm := mux.NewRouter()
 	getRouter := sm.Methods(http.MethodGet).Subrouter()
-	getRouter.HandleFunc("/", ph.GetProducts)
+	getRouter.HandleFunc("/products", ph.GetProducts)
 	putRouter := sm.Methods(http.MethodPut).Subrouter()
 	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProduct)
 	putRouter.Use(ph.MiddlewareProductValidation)
 	postRouter := sm.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/", ph.AddProduct)
 	postRouter.Use(ph.MiddlewareProductValidation)
+	opts := middleware.RedocOpts{SpecURL:"/swagger.yaml"}
+	sh := middleware.Redoc(opts,nil)
+	getRouter.Handle("/docs",sh)
+	getRouter.Handle("/swagger.yaml",http.FileServer(http.Dir("./")))
 	//sm.Handle("/products", ph)
 	s := &http.Server{
 		Addr:         ":8000",

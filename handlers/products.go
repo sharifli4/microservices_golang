@@ -1,63 +1,55 @@
+// Package classification of Product API
+//
+// Documentation for Product API
+//
+// Schemes: http
+// BasePath: /
+// Version: 1.0.0
+//
+// Consumes:
+// - application/json
+//
+// Produces:
+// - application/json
+// swagger:meta
+
 package handlers
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
 	"golang/data"
 	"log"
 	"net/http"
-	"strconv"
 )
+// A list of products returns in the response
+// swagger:response productsResponseWrapper
+type productsResponseWrapper struct {
+	// All products in the system
+	// in:body
+	Body []data.Product
 
+}
+// swagger:response noContent
+type productsNoContent struct {}
+//swagger:parameters DeleteProduct
+type productIDParameterWrapper struct{
+	// the id of the product to delete from the database
+	// in:path
+	// required:true
+	ID int `json:"id"`
+}
+// Products  is a http.Handler
 type Products struct {
 	l *log.Logger
 }
-
+// NewProducts creates a product handler with the given logger
 func NewProducts(l *log.Logger) *Products {
 	return &Products{
 		l: l,
 	}
 }
-
-func (p *Products) GetProducts(w http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handled request")
-	lp := data.GetProducts()
-	w.Header().Set("content-Type", "application/json")
-	err := lp.ToJSON(w)
-	if err != nil {
-		http.Error(w, "Unable convert to json", http.StatusInternalServerError)
-	}
-}
-func (p *Products) AddProduct(w http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle POST request")
-	prod := r.Context().Value(KeyProduct{}).(data.Product)
-
-	p.l.Printf("Prod: %#v", prod)
-	data.AddProduct(&prod)
-}
-func (p Products) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	fmt.Println(mux.Vars(r))
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(w, "Cannot convert id to int", http.StatusInternalServerError)
-	}
-	p.l.Println("Handle PUT Request", id)
-	prod := r.Context().Value(KeyProduct{}).(data.Product)
-	err = data.UpdateProduct(id, &prod)
-	if err == data.ErrProductNotFind {
-		http.Error(w, "Product not found", http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		http.Error(w, "Product not found", http.StatusNotFound)
-		return
-	}
-}
-
 type KeyProduct struct{}
-
 func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		prod := data.Product{}
@@ -67,7 +59,6 @@ func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
 			p.l.Println("[ERROR] deserializing product",err)
 			http.Error(rw, "Unable to unmarshall json", http.StatusInternalServerError)
 		}
-
 		err = prod.Validate()
 		if err != nil {
 			p.l.Println("[ERROR] validating product",err)
